@@ -56,12 +56,16 @@ export default function App() {
 
   // Router States
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('cyber_admin_authenticated') === 'true';
+  });
   const [activeTab, setActiveTab] = useState<'form' | 'notices' | 'memories' | 'seniors'>('form');
 
   // Admin Auth submission handler
   const handleAdminAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (adminUsername.trim() === 'aamyr' && adminPassword === 'abdullahsirxudi') {
+      setIsAdminAuthenticated(true);
       setIsAdminMode(true);
       window.location.hash = 'admin';
       setIsAdminAuthOpen(false);
@@ -106,7 +110,13 @@ export default function App() {
         // 4. Listen to URL Hash for Admin panel routing
         const handleHashChange = () => {
           if (window.location.hash === '#admin') {
-            setIsAdminMode(true);
+            const isAuth = localStorage.getItem('cyber_admin_authenticated') === 'true';
+            if (isAuth) {
+              setIsAdminMode(true);
+            } else {
+              setIsAdminMode(false);
+              setIsAdminAuthOpen(true);
+            }
           } else {
             setIsAdminMode(false);
           }
@@ -118,12 +128,17 @@ export default function App() {
         const handleKeyDown = (e: KeyboardEvent) => {
           if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
             e.preventDefault();
-            setIsAdminMode((prev) => {
-              const newVal = !prev;
-              // Sync hash route
-              window.location.hash = newVal ? 'admin' : '';
-              return newVal;
-            });
+            const isAuth = localStorage.getItem('cyber_admin_authenticated') === 'true';
+            if (isAuth) {
+              setIsAdminMode((prev) => {
+                const newVal = !prev;
+                // Sync hash route
+                window.location.hash = newVal ? 'admin' : '';
+                return newVal;
+              });
+            } else {
+              setIsAdminAuthOpen(true);
+            }
           }
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -289,6 +304,8 @@ export default function App() {
     setNickname('');
     setRandomWelcomeMsg('');
     localStorage.removeItem('cyber_community_nickname');
+    setIsAdminAuthenticated(false);
+    localStorage.removeItem('cyber_admin_authenticated');
   };
 
   const renderAdminAuthModal = () => {
@@ -433,13 +450,14 @@ export default function App() {
     return (
       <div id="app-root-landing" className="min-h-screen relative flex flex-col justify-between">
         <CyberBackground />
-        
-        {/* TOP RIGHT EXPLICIT ADMIN PANEL BUTTON */}
+
+        {/* Visible Admin Panel Login button on the first page */}
         <div className="absolute top-4 right-4 z-50">
           <button
             id="landing-admin-btn"
             onClick={() => setIsAdminAuthOpen(true)}
             className="px-4 py-2.5 bg-slate-950/95 hover:bg-cyan-950/40 border border-cyan-500/30 hover:border-cyan-400 rounded-xl text-xs font-mono text-cyan-400 hover:text-cyan-300 transition-all cursor-pointer flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.15)] uppercase tracking-wider font-bold"
+            title="Administrative Gateway Access"
           >
             <Terminal className="w-4 h-4 text-cyan-400" />
             <span>Admin Panel</span>
@@ -450,9 +468,17 @@ export default function App() {
           <WelcomeScreen onEnter={handleEnterCommunity} />
         </div>
         <footer 
-          className="w-full text-center py-4 border-t border-cyan-500/5 text-2xs font-mono text-cyan-500/20 select-none"
+          className="w-full text-center py-6 border-t border-cyan-500/5 text-2xs font-mono text-cyan-500/20 select-none flex flex-col items-center gap-2"
         >
-          UFTB CYBER COMMUNITY HUB © 2026 • GATEWAY PROTOCOLS ACTIVE
+          <span>UFTB CYBER COMMUNITY HUB © 2026 • GATEWAY PROTOCOLS ACTIVE</span>
+          <button
+            id="landing-footer-admin-btn"
+            onClick={() => setIsAdminAuthOpen(true)}
+            className="px-3 py-1.5 bg-slate-900/65 hover:bg-cyan-950/40 border border-slate-800/80 hover:border-cyan-500/30 rounded-lg text-[10px] text-slate-400 hover:text-cyan-400 transition-all cursor-pointer flex items-center gap-1.5 uppercase tracking-wider font-semibold"
+          >
+            <Terminal className="w-3.5 h-3.5 text-cyan-500" />
+            <span>Admin Panel Access</span>
+          </button>
         </footer>
 
         {/* Render modal on landing screen */}
@@ -469,7 +495,7 @@ export default function App() {
       <div className="absolute inset-0 bg-radial-[circle_at_top,rgba(6,182,212,0.02)_0%,transparent_60%] pointer-events-none" />
 
       {/* Main App Header */}
-      <header className="bg-slate-900/40 border-b border-slate-800/80 backdrop-blur-md px-6 py-4 sticky top-0 z-30">
+      <header className="bg-slate-900/40 border-b border-slate-800/80 backdrop-blur-md px-6 py-4 sticky top-0 z-30 print:hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           
           {/* Top Center Logo and Site Identity */}
@@ -505,15 +531,17 @@ export default function App() {
               <span className="text-[9px] font-mono text-cyan-500/60 uppercase tracking-wider">Node Verified</span>
             </div>
 
-            <button
-              id="settings-header-btn"
-              onClick={() => setIsAdminAuthOpen(true)}
-              className="px-3 py-1.5 bg-slate-900 hover:bg-cyan-950/40 border border-slate-800 hover:border-cyan-500/40 rounded-xl text-slate-400 hover:text-cyan-300 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-mono font-bold tracking-wider uppercase"
-              title="Administrative Node Login"
-            >
-              <Terminal className="w-4 h-4 text-cyan-500" />
-              <span className="hidden md:inline">Admin Panel</span>
-            </button>
+            {isAdminAuthenticated && (
+              <button
+                id="settings-header-btn"
+                onClick={() => setIsAdminMode(true)}
+                className="px-3 py-1.5 bg-slate-900 hover:bg-cyan-950/40 border border-slate-800 hover:border-cyan-500/40 rounded-xl text-slate-400 hover:text-cyan-300 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-mono font-bold tracking-wider uppercase print:hidden"
+                title="Administrative Node Login"
+              >
+                <Terminal className="w-4 h-4 text-cyan-500" />
+                <span className="hidden md:inline">Admin Panel</span>
+              </button>
+            )}
 
             <button
               id="user-logout-btn"
@@ -528,14 +556,14 @@ export default function App() {
       </header>
 
       {/* Main Workspace content */}
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-6 flex-1 w-full">
+      <main className="max-w-7xl mx-auto px-6 py-8 space-y-6 flex-1 w-full print:p-0 print:m-0 print:max-w-none">
         {/* Dynamic Welcome Message Header Banner */}
         {randomWelcomeMsg && (
           <motion.div
             id="welcome-greeting-banner"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-slate-900/40 backdrop-blur-md border border-cyan-500/25 p-5 rounded-2xl relative overflow-hidden shadow-2xl"
+            className="bg-slate-900/40 backdrop-blur-md border border-cyan-500/25 p-5 rounded-2xl relative overflow-hidden shadow-2xl print:hidden"
           >
             {/* Visual corner indicators */}
             <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-cyan-400/40" />
@@ -560,7 +588,7 @@ export default function App() {
         )}
 
         {/* Cybersecurity Module Navigation Tabs */}
-        <div id="mainframe-tab-navigation" className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-slate-900/25 border border-slate-800/60 p-2 rounded-2xl backdrop-blur-md">
+        <div id="mainframe-tab-navigation" className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-slate-900/25 border border-slate-800/60 p-2 rounded-2xl backdrop-blur-md print:hidden">
           <div className="flex flex-wrap items-center gap-1.5 p-1 w-full md:w-auto">
             <button
               id="tab-btn-form"
@@ -681,9 +709,47 @@ export default function App() {
       {renderAdminAuthModal()}
 
       {/* Decorative footer */}
-      <footer className="border-t border-slate-900 pt-6 mt-12 text-center text-[10px] font-mono text-slate-500/80 tracking-wide max-w-7xl mx-auto w-full px-6">
-        <p>DECENTRALIZED COMMUNITY INFRASTRUCTURE HUB • SECURE TUNNEL IDENTIFIER ACTIVE</p>
-        <p className="mt-1 text-slate-600/40 text-[9px]">UFTB CYBER COMMUNITY • AUTHENTICATED GATEWAY NODE</p>
+      <footer className="border-t border-slate-900/60 pt-8 pb-10 mt-16 text-center max-w-7xl mx-auto w-full px-6 print:hidden">
+        <div className="flex flex-col items-center gap-3">
+          {/* Security status bar */}
+          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-950/20 border border-emerald-500/20 rounded-full text-[10px] font-mono text-emerald-400 uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+            <span>All Information Encrypted & Secure</span>
+          </div>
+          
+          <p className="text-[11px] font-mono text-slate-400 tracking-wide">
+            This website is officially run and maintained by <span className="text-cyan-400 font-semibold">Cybersecurity Second-Year Students</span>.
+          </p>
+          
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-mono text-slate-500">
+            <span>If there is any problem, please contact us via email:</span>
+            <a 
+              href="mailto:2404004@uftb.ac.bd" 
+              className="text-cyan-400 hover:text-cyan-300 underline underline-offset-4 decoration-cyan-500/30 transition-all font-semibold"
+            >
+              2404004@uftb.ac.bd
+            </a>
+          </div>
+
+          <p className="mt-4 text-[9px] font-mono text-slate-600 uppercase tracking-widest">
+            UFTB CYBER COMMUNITY INFRASTRUCTURE HUB • AUTHENTICATED GATEWAY NODE
+          </p>
+
+          {isAdminAuthenticated && (
+            <button
+              id="footer-admin-btn"
+              onClick={() => {
+                setIsAdminMode(true);
+                window.location.hash = 'admin';
+              }}
+              className="mt-2 px-3 py-1.5 bg-slate-900/60 hover:bg-cyan-950/40 border border-slate-800/80 hover:border-cyan-500/30 rounded-lg text-[10px] font-mono text-slate-500 hover:text-cyan-400 transition-all cursor-pointer flex items-center gap-1.5 uppercase tracking-wider"
+              title="Administrative Node Login"
+            >
+              <Terminal className="w-3.5 h-3.5" />
+              <span>Admin Panel</span>
+            </button>
+          )}
+        </div>
       </footer>
     </div>
   );

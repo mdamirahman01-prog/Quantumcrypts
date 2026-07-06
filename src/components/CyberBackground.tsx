@@ -229,7 +229,7 @@ export default function CyberBackground() {
     <canvas
       id="cyber-nodes-canvas"
       ref={canvasRef}
-      className="fixed inset-0 w-full h-full pointer-events-none -z-10 bg-[#020617]"
+      className="fixed inset-0 w-full h-full pointer-events-none -z-10 bg-[#020617] print:hidden"
     />
   );
 }
