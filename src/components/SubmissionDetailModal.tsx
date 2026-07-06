@@ -1,14 +1,15 @@
 import { Submission, FormField } from '../types';
-import { Printer, Download, X, Calendar, User, Eye, ArrowLeft, File } from 'lucide-react';
+import { Printer, Download, X, Calendar, User, Eye, ArrowLeft, File, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface SubmissionDetailModalProps {
   submission: Submission | null;
   fields: FormField[];
   onClose: () => void;
+  onDelete?: (id: string) => void;
 }
 
-export default function SubmissionDetailModal({ submission, fields, onClose }: SubmissionDetailModalProps) {
+export default function SubmissionDetailModal({ submission, fields, onClose, onDelete }: SubmissionDetailModalProps) {
   if (!submission) return null;
 
   // Find corresponding labels for field values
@@ -303,13 +304,32 @@ Audit generated via UFTB Cyber Mainframe.`;
             </button>
           </div>
 
-          <button
-            id="modal-terminal-exit"
-            onClick={onClose}
-            className="bg-slate-800 hover:bg-slate-750 text-white font-mono text-2xs uppercase tracking-wider px-5 py-2 rounded-xl cursor-pointer"
-          >
-            Exit Terminal
-          </button>
+          <div className="flex gap-2">
+            {onDelete && (
+              <button
+                id="modal-delete-record"
+                onClick={() => {
+                  if (window.confirm('Are you absolutely sure you want to permanently delete this submission from the system? This action is irreversible.')) {
+                    onDelete(submission.id);
+                    onClose();
+                  }
+                }}
+                className="bg-red-950/80 hover:bg-red-900 border border-red-500/40 text-red-400 font-mono text-2xs uppercase tracking-wider px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                title="Delete Submission"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Record</span>
+              </button>
+            )}
+
+            <button
+              id="modal-terminal-exit"
+              onClick={onClose}
+              className="bg-slate-800 hover:bg-slate-750 text-white font-mono text-2xs uppercase tracking-wider px-5 py-2 rounded-xl cursor-pointer"
+            >
+              Exit Terminal
+            </button>
+          </div>
         </div>
 
         {/* Global Print-only Styles injected */}

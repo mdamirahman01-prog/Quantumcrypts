@@ -468,13 +468,22 @@ export default function App() {
           <WelcomeScreen onEnter={handleEnterCommunity} />
         </div>
         <footer 
-          className="w-full text-center py-6 border-t border-cyan-500/5 text-2xs font-mono text-cyan-500/20 select-none flex flex-col items-center gap-2"
+          className="w-full text-center py-6 px-4 border-t border-slate-900/40 flex flex-col items-center gap-2"
         >
-          <span>UFTB CYBER COMMUNITY HUB © 2026 • GATEWAY PROTOCOLS ACTIVE</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-950/20 border border-emerald-500/20 rounded-full text-[9px] font-mono text-emerald-400 uppercase tracking-widest select-none">
+            <span className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse"></span>
+            <span>All Information Encrypted & Secure</span>
+          </div>
+          <p className="text-[10px] font-mono text-slate-500 tracking-wide select-none">
+            Maintenance by <span className="text-cyan-400 font-semibold">Cyber Security Engineering Department Second batch students</span>.
+          </p>
+          <p className="text-[10px] font-mono text-slate-500 select-none">
+            Support email: <a href="mailto:2404004@uftb.ac.bd" className="text-cyan-400 hover:text-cyan-300 underline underline-offset-4 decoration-cyan-500/30 transition-all font-semibold">2404004@uftb.ac.bd</a>
+          </p>
           <button
             id="landing-footer-admin-btn"
             onClick={() => setIsAdminAuthOpen(true)}
-            className="px-3 py-1.5 bg-slate-900/65 hover:bg-cyan-950/40 border border-slate-800/80 hover:border-cyan-500/30 rounded-lg text-[10px] text-slate-400 hover:text-cyan-400 transition-all cursor-pointer flex items-center gap-1.5 uppercase tracking-wider font-semibold"
+            className="mt-1 px-3 py-1.5 bg-slate-900/65 hover:bg-cyan-950/40 border border-slate-800/80 hover:border-cyan-500/30 rounded-lg text-[10px] text-slate-400 hover:text-cyan-400 transition-all cursor-pointer flex items-center gap-1.5 uppercase tracking-wider font-semibold"
           >
             <Terminal className="w-3.5 h-3.5 text-cyan-500" />
             <span>Admin Panel Access</span>
@@ -718,7 +727,7 @@ export default function App() {
           </div>
           
           <p className="text-[11px] font-mono text-slate-400 tracking-wide">
-            This website is officially run and maintained by <span className="text-cyan-400 font-semibold">Cybersecurity Second-Year Students</span>.
+            This website is officially run and maintained by <span className="text-cyan-400 font-semibold">Cyber Security Engineering Department Second batch students</span>.
           </p>
           
           <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-mono text-slate-500">
@@ -730,10 +739,6 @@ export default function App() {
               2404004@uftb.ac.bd
             </a>
           </div>
-
-          <p className="mt-4 text-[9px] font-mono text-slate-600 uppercase tracking-widest">
-            UFTB CYBER COMMUNITY INFRASTRUCTURE HUB • AUTHENTICATED GATEWAY NODE
-          </p>
 
           {isAdminAuthenticated && (
             <button

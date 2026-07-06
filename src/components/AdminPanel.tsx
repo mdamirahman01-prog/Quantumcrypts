@@ -616,8 +616,8 @@ export default function AdminPanel({
   };
 
   // 6. Submissions Delete & Exporters
-  const handleDeleteSubmission = async (id: string) => {
-    if (!window.confirm('Purge this community member record permanently from Firestore?')) return;
+  const handleDeleteSubmission = async (id: string, skipConfirm = false) => {
+    if (!skipConfirm && !window.confirm('Purge this community member record permanently from Firestore?')) return;
     setIsActionPending(true);
     try {
       await deleteDoc(doc(db, 'submissions', id));
@@ -2185,6 +2185,7 @@ export default function AdminPanel({
           submission={selectedInspectSub}
           fields={fields}
           onClose={() => setSelectedInspectSub(null)}
+          onDelete={(id) => handleDeleteSubmission(id, true)}
         />
       )}
     </div>
