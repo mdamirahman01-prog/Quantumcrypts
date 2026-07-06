@@ -309,10 +309,8 @@ Audit generated via UFTB Cyber Mainframe.`;
               <button
                 id="modal-delete-record"
                 onClick={() => {
-                  if (window.confirm('Are you absolutely sure you want to permanently delete this submission from the system? This action is irreversible.')) {
-                    onDelete(submission.id);
-                    onClose();
-                  }
+                  onDelete(submission.id);
+                  onClose();
                 }}
                 className="bg-red-950/80 hover:bg-red-900 border border-red-500/40 text-red-400 font-mono text-2xs uppercase tracking-wider px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]"
                 title="Delete Submission"

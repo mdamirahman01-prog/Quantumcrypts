@@ -25,6 +25,7 @@ export default function DynamicForm({ fields, visitorNickname, presetAnswers }: 
     return localStorage.getItem(`cyber_form_submitted_new_${visitorNickname.toLowerCase()}`) === 'true';
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [errorAlert, setErrorAlert] = useState<string | null>(null);
 
   // Check if this visitor has already submitted
   React.useEffect(() => {
@@ -174,7 +175,7 @@ Receipt secure signature recorded in Firestore Mainframe.`;
 
     // Check size limit (500KB) for non-image attachments to ensure they fit in Firestore safely
     if (!file.type.startsWith('image/') && file.size > 500 * 1024) {
-      alert('Attachment too large. Please upload files smaller than 500KB to stay within secure network constraints.');
+      setErrorAlert('Attachment too large. Please upload files smaller than 500KB to stay within secure network constraints.');
       return;
     }
 
@@ -200,9 +201,10 @@ Receipt secure signature recorded in Firestore Mainframe.`;
         size: file.size,
         base64: base64,
       });
+      setErrorAlert(null); // clear any previous error
     } catch (err) {
       console.error('Error handling file:', err);
-      alert('File processing failed.');
+      setErrorAlert('File processing failed.');
     }
   };
 
@@ -282,7 +284,7 @@ Receipt secure signature recorded in Firestore Mainframe.`;
       setSubmitSuccess(true);
     } catch (err) {
       console.error('Error saving submission:', err);
-      alert('Transmission failed. Check network firewalls and retry.');
+      setErrorAlert('Transmission failed. Check network firewalls and retry.');
       handleFirestoreError(err, OperationType.CREATE, 'submissions');
     } finally {
       setIsSubmitting(false);
@@ -623,6 +625,20 @@ Receipt secure signature recorded in Firestore Mainframe.`;
               </div>
             );
           })}
+
+          {errorAlert && (
+            <div className="p-3 bg-red-950/60 border border-red-500/30 rounded-xl text-[11px] font-mono text-red-300 flex items-start gap-2">
+              <span className="text-red-400 shrink-0">⚠ ERROR:</span>
+              <p className="leading-relaxed flex-1">{errorAlert}</p>
+              <button 
+                type="button" 
+                onClick={() => setErrorAlert(null)} 
+                className="text-slate-400 hover:text-white shrink-0 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           <button
             id="submit-form-btn"

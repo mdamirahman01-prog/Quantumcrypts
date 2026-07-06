@@ -97,6 +97,58 @@ export default function AdminPanel({
   // Loading indicator for saves
   const [isActionPending, setIsActionPending] = useState(false);
 
+  // Custom confirmation and alert states to bypass iframe sandboxing limitations of window.confirm and alert
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+    confirmText?: string;
+    cancelText?: string;
+    isDestructive?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const [toast, setToast] = useState<{
+    isOpen: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    isOpen: false,
+    message: '',
+    type: 'success',
+  });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ isOpen: true, message, type });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, isOpen: false }));
+    }, 4000);
+  };
+
+  const askConfirmation = (
+    title: string,
+    message: string,
+    onConfirm: () => void | Promise<void>,
+    isDestructive = false,
+    confirmText = 'Confirm',
+    cancelText = 'Cancel'
+  ) => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      onConfirm,
+      isDestructive,
+      confirmText,
+      cancelText,
+    });
+  };
+
   // Editor Sub-states
   // --- Senior Contacts ---
   const [seniorContactForm, setSeniorContactForm] = useState({ name: '', phone: '', email: '', photoUrl: '' });
@@ -187,30 +239,38 @@ export default function AdminPanel({
         updatedAt: Date.now(),
       });
       onLogoChange(base64Str);
+      showToast('Community logo uploaded successfully!');
     } catch (err) {
       console.error('Error saving logo:', err);
-      alert('Firestore logo save failed.');
+      showToast('Firestore logo save failed.', 'error');
     } finally {
       setIsActionPending(false);
     }
   };
 
-  const handleDeleteLogo = async () => {
-    if (!window.confirm('Are you sure you want to delete the community logo?')) return;
-    setIsActionPending(true);
-    try {
-      const logoDocRef = doc(db, 'config', 'logo');
-      await setDoc(logoDocRef, {
-        logoUrl: '',
-        updatedAt: Date.now(),
-      });
-      onLogoChange('');
-    } catch (err) {
-      console.error(err);
-      alert('Logo removal failed.');
-    } finally {
-      setIsActionPending(false);
-    }
+  const handleDeleteLogo = () => {
+    askConfirmation(
+      'Purge Community Logo',
+      'Are you sure you want to permanently delete the community logo from Firestore?',
+      async () => {
+        setIsActionPending(true);
+        try {
+          const logoDocRef = doc(db, 'config', 'logo');
+          await setDoc(logoDocRef, {
+            logoUrl: '',
+            updatedAt: Date.now(),
+          });
+          onLogoChange('');
+          showToast('Community logo deleted successfully!');
+        } catch (err) {
+          console.error(err);
+          showToast('Logo removal failed.', 'error');
+        } finally {
+          setIsActionPending(false);
+        }
+      },
+      true
+    );
   };
 
   // 2. Welcome Messages
@@ -263,17 +323,25 @@ export default function AdminPanel({
     }
   };
 
-  const handleDeleteWelcome = async (id: string) => {
-    if (!window.confirm('Delete this welcome packet template?')) return;
-    setIsActionPending(true);
-    try {
-      await deleteDoc(doc(db, 'welcome_messages', id));
-      await onDataRefresh();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsActionPending(false);
-    }
+  const handleDeleteWelcome = (id: string) => {
+    askConfirmation(
+      'Purge Welcome Message',
+      'Are you sure you want to delete this welcome packet template permanently from Firestore?',
+      async () => {
+        setIsActionPending(true);
+        try {
+          await deleteDoc(doc(db, 'welcome_messages', id));
+          await onDataRefresh();
+          showToast('Welcome message purged!');
+        } catch (err) {
+          console.error(err);
+          showToast('Failed to delete welcome packet.', 'error');
+        } finally {
+          setIsActionPending(false);
+        }
+      },
+      true
+    );
   };
 
   // 3. Memories Management
@@ -285,9 +353,10 @@ export default function AdminPanel({
     try {
       const base64Str = await compressImage(file, 800, 800, 0.7);
       setMemoryForm((prev) => ({ ...prev, imageUrl: base64Str }));
+      showToast('Memory image processed and compressed successfully!');
     } catch (err) {
       console.error('Error uploading memory image:', err);
-      alert('Failed to compress/upload image.');
+      showToast('Failed to compress/upload image.', 'error');
     } finally {
       setIsActionPending(false);
     }
@@ -296,7 +365,7 @@ export default function AdminPanel({
   const handleMemorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memoryForm.title.trim() || !memoryForm.description.trim() || !memoryForm.imageUrl) {
-      alert('Please provide a title, description, and upload a memory image.');
+      showToast('Please provide a title, description, and upload a memory image.', 'error');
       return;
     }
     setIsActionPending(true);
@@ -308,7 +377,7 @@ export default function AdminPanel({
           imageUrl: memoryForm.imageUrl,
           date: memoryForm.date.trim() || new Date().toLocaleDateString(),
         });
-        alert('Memory entry updated successfully! You can keep editing or click Cancel to reset.');
+        showToast('Memory entry updated successfully!');
       } else {
         await addDoc(collection(db, 'memories'), {
           title: memoryForm.title.trim(),
@@ -318,30 +387,37 @@ export default function AdminPanel({
           createdAt: Date.now(),
         });
         setMemoryForm({ title: '', description: '', imageUrl: '', date: '' });
+        showToast('Memory entry logged successfully!');
       }
       await onDataRefresh();
     } catch (err) {
       console.error(err);
-      alert('Memory save failed.');
+      showToast('Memory save failed.', 'error');
     } finally {
       setIsActionPending(false);
     }
   };
 
-  const handleDeleteMemory = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this memory?')) return;
-    setIsActionPending(true);
-    try {
-      await deleteDoc(doc(db, 'memories', id));
-      await onDataRefresh();
-      alert('Memory deleted successfully!');
-    } catch (err: any) {
-      console.error(err);
-      alert(`Memory deletion failed: ${err.message || err}`);
-      handleFirestoreError(err, OperationType.DELETE, `memories/${id}`);
-    } finally {
-      setIsActionPending(false);
-    }
+  const handleDeleteMemory = (id: string) => {
+    askConfirmation(
+      'Purge Memory',
+      'Are you sure you want to permanently delete this memory asset?',
+      async () => {
+        setIsActionPending(true);
+        try {
+          await deleteDoc(doc(db, 'memories', id));
+          await onDataRefresh();
+          showToast('Memory deleted successfully!');
+        } catch (err: any) {
+          console.error(err);
+          showToast(`Memory deletion failed: ${err.message || err}`, 'error');
+          handleFirestoreError(err, OperationType.DELETE, `memories/${id}`);
+        } finally {
+          setIsActionPending(false);
+        }
+      },
+      true
+    );
   };
 
   // 3a. Senior Contacts Management
@@ -353,9 +429,10 @@ export default function AdminPanel({
     try {
       const base64Str = await compressImage(file, 400, 400, 0.7);
       setSeniorContactForm((prev) => ({ ...prev, photoUrl: base64Str }));
+      showToast('Advisor photo processed successfully!');
     } catch (err) {
       console.error('Error uploading contact photo:', err);
-      alert('Failed to compress/upload contact photo.');
+      showToast('Failed to compress/upload contact photo.', 'error');
     } finally {
       setIsActionPending(false);
     }
@@ -364,7 +441,7 @@ export default function AdminPanel({
   const handleSeniorContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!seniorContactForm.name.trim() || !seniorContactForm.phone.trim() || !seniorContactForm.email.trim() || !seniorContactForm.photoUrl) {
-      alert('Please provide a name, phone, email, and upload a contact photo.');
+      showToast('Please provide a name, phone, email, and upload a contact photo.', 'error');
       return;
     }
     setIsActionPending(true);
@@ -376,7 +453,7 @@ export default function AdminPanel({
           email: seniorContactForm.email.trim(),
           photoUrl: seniorContactForm.photoUrl,
         });
-        alert('Senior advisor contact updated successfully! You can keep editing or click Cancel to reset.');
+        showToast('Senior advisor contact updated successfully!');
       } else {
         await addDoc(collection(db, 'senior_contacts'), {
           name: seniorContactForm.name.trim(),
@@ -386,30 +463,37 @@ export default function AdminPanel({
           createdAt: Date.now(),
         });
         setSeniorContactForm({ name: '', phone: '', email: '', photoUrl: '' });
+        showToast('Senior advisor contact added successfully!');
       }
       await onDataRefresh();
     } catch (err) {
       console.error(err);
-      alert('Senior contact save failed.');
+      showToast('Senior contact save failed.', 'error');
     } finally {
       setIsActionPending(false);
     }
   };
 
-  const handleDeleteSeniorContact = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this senior contact?')) return;
-    setIsActionPending(true);
-    try {
-      await deleteDoc(doc(db, 'senior_contacts', id));
-      await onDataRefresh();
-      alert('Senior contact deleted successfully!');
-    } catch (err: any) {
-      console.error(err);
-      alert(`Senior contact deletion failed: ${err.message || err}`);
-      handleFirestoreError(err, OperationType.DELETE, `senior_contacts/${id}`);
-    } finally {
-      setIsActionPending(false);
-    }
+  const handleDeleteSeniorContact = (id: string) => {
+    askConfirmation(
+      'Purge Advisor Contact',
+      'Are you sure you want to delete this senior advisor contact record?',
+      async () => {
+        setIsActionPending(true);
+        try {
+          await deleteDoc(doc(db, 'senior_contacts', id));
+          await onDataRefresh();
+          showToast('Senior contact deleted successfully!');
+        } catch (err: any) {
+          console.error(err);
+          showToast(`Senior contact deletion failed: ${err.message || err}`, 'error');
+          handleFirestoreError(err, OperationType.DELETE, `senior_contacts/${id}`);
+        } finally {
+          setIsActionPending(false);
+        }
+      },
+      true
+    );
   };
 
   // 3b. GST Presets Management
@@ -421,7 +505,7 @@ export default function AdminPanel({
     e.preventDefault();
     const cleanGst = presetGst.trim();
     if (!cleanGst) {
-      alert('GST Roll/ID is required.');
+      showToast('GST Roll/ID is required.', 'error');
       return;
     }
     setIsActionPending(true);
@@ -442,34 +526,41 @@ export default function AdminPanel({
       });
 
       if (editingPresetId) {
-        alert('GST prefill preset updated successfully! You can continue updating or click Cancel to reset.');
+        showToast('GST prefill preset updated successfully!');
       } else {
         setPresetGst('');
         setPresetAnswers({});
         setEditingPresetId(null);
-        alert('GST prefill preset created successfully!');
+        showToast('GST prefill preset created successfully!');
       }
       await onDataRefresh();
     } catch (err) {
       console.error(err);
-      alert('Failed to save GST preset.');
+      showToast('Failed to save GST preset.', 'error');
     } finally {
       setIsActionPending(false);
     }
   };
 
-  const handleDeletePreset = async (id: string) => {
-    if (!window.confirm(`Are you sure you want to delete the prefill preset for GST: ${id}?`)) return;
-    setIsActionPending(true);
-    try {
-      await deleteDoc(doc(db, 'gst_presets', id));
-      await onDataRefresh();
-    } catch (err) {
-      console.error(err);
-      alert('Failed to delete preset.');
-    } finally {
-      setIsActionPending(false);
-    }
+  const handleDeletePreset = (id: string) => {
+    askConfirmation(
+      'Purge Prefill Preset',
+      `Are you sure you want to delete the prefill preset for GST: ${id}?`,
+      async () => {
+        setIsActionPending(true);
+        try {
+          await deleteDoc(doc(db, 'gst_presets', id));
+          await onDataRefresh();
+          showToast('Prefill preset deleted successfully!');
+        } catch (err) {
+          console.error(err);
+          showToast('Failed to delete preset.', 'error');
+        } finally {
+          setIsActionPending(false);
+        }
+      },
+      true
+    );
   };
 
   // 4. Notice Board
@@ -488,7 +579,7 @@ export default function AdminPanel({
           hidden: noticeForm.hidden,
           archived: noticeForm.archived,
         });
-        alert('Notice bulletin updated successfully! You can keep editing or click Cancel to reset.');
+        showToast('Notice bulletin updated successfully!');
       } else {
         await addDoc(collection(db, 'notices'), {
           title: noticeForm.title.trim(),
@@ -501,29 +592,37 @@ export default function AdminPanel({
           createdAt: Date.now(),
         });
         setNoticeForm({ title: '', description: '', date: '', attachmentUrl: '', pinned: false, hidden: false, archived: false });
+        showToast('Notice bulletin published successfully!');
       }
       await onDataRefresh();
     } catch (err) {
       console.error(err);
+      showToast('Failed to save notice bulletin.', 'error');
     } finally {
       setIsActionPending(false);
     }
   };
 
-  const handleDeleteNotice = async (id: string) => {
-    if (!window.confirm('Are you sure you want to purge this bulletin?')) return;
-    setIsActionPending(true);
-    try {
-      await deleteDoc(doc(db, 'notices', id));
-      await onDataRefresh();
-      alert('Notice bulletin purged successfully!');
-    } catch (err: any) {
-      console.error(err);
-      alert(`Notice deletion failed: ${err.message || err}`);
-      handleFirestoreError(err, OperationType.DELETE, `notices/${id}`);
-    } finally {
-      setIsActionPending(false);
-    }
+  const handleDeleteNotice = (id: string) => {
+    askConfirmation(
+      'Purge Notice Bulletin',
+      'Are you sure you want to permanently delete this notice bulletin? This cannot be undone.',
+      async () => {
+        setIsActionPending(true);
+        try {
+          await deleteDoc(doc(db, 'notices', id));
+          await onDataRefresh();
+          showToast('Notice bulletin purged successfully!');
+        } catch (err: any) {
+          console.error(err);
+          showToast(`Notice deletion failed: ${err.message || err}`, 'error');
+          handleFirestoreError(err, OperationType.DELETE, `notices/${id}`);
+        } finally {
+          setIsActionPending(false);
+        }
+      },
+      true
+    );
   };
 
   const handleToggleNoticeFlag = async (id: string, field: 'pinned' | 'hidden' | 'archived', currentVal: boolean) => {
@@ -533,8 +632,10 @@ export default function AdminPanel({
         [field]: !currentVal,
       });
       await onDataRefresh();
+      showToast(`Notice flag '${field}' updated.`);
     } catch (err) {
       console.error(err);
+      showToast('Failed to update notice status.', 'error');
     } finally {
       setIsActionPending(false);
     }
@@ -563,7 +664,7 @@ export default function AdminPanel({
           placeholder: fieldForm.placeholder.trim(),
           options,
         });
-        alert('Custom field updated successfully! You can keep editing or click Cancel to reset.');
+        showToast('Custom field updated successfully!');
       } else {
         // Add mode
         const maxOrder = fields.reduce((max, f) => (f.order > max ? f.order : max), -1);
@@ -577,10 +678,12 @@ export default function AdminPanel({
           order: maxOrder + 1,
         });
         setFieldForm({ label: '', type: 'text', required: false, placeholder: '', optionsString: '' });
+        showToast('Custom field added successfully!');
       }
       await onDataRefresh();
     } catch (err) {
       console.error(err);
+      showToast('Failed to save custom field.', 'error');
     } finally {
       setIsActionPending(false);
     }
@@ -602,50 +705,70 @@ export default function AdminPanel({
       await updateDoc(targetDocRef, { order: currentIndex });
 
       await onDataRefresh();
+      showToast('Form order updated.');
     } catch (err) {
       console.error(err);
+      showToast('Failed to reorder fields.', 'error');
     } finally {
       setIsActionPending(false);
     }
   };
 
-  const handleDeleteField = async (id: string) => {
-    if (!window.confirm('Purging this field does NOT remove existing submission keys, but will disable the field in forms. Continue?')) return;
-    setIsActionPending(true);
-    try {
-      await deleteDoc(doc(db, 'form_fields', id));
-      await onDataRefresh();
-      alert('Custom form field removed successfully!');
-    } catch (err: any) {
-      console.error(err);
-      alert(`Custom field deletion failed: ${err.message || err}`);
-      handleFirestoreError(err, OperationType.DELETE, `form_fields/${id}`);
-    } finally {
-      setIsActionPending(false);
-    }
+  const handleDeleteField = (id: string) => {
+    askConfirmation(
+      'Remove Custom Field',
+      'Purging this field does NOT remove existing submission keys, but will disable the field in forms. Continue?',
+      async () => {
+        setIsActionPending(true);
+        try {
+          await deleteDoc(doc(db, 'form_fields', id));
+          await onDataRefresh();
+          showToast('Custom form field removed successfully!');
+        } catch (err: any) {
+          console.error(err);
+          showToast(`Custom field deletion failed: ${err.message || err}`, 'error');
+          handleFirestoreError(err, OperationType.DELETE, `form_fields/${id}`);
+        } finally {
+          setIsActionPending(false);
+        }
+      },
+      true
+    );
   };
 
   // 6. Submissions Delete & Exporters
   const handleDeleteSubmission = async (id: string, skipConfirm = false) => {
-    if (!skipConfirm && !window.confirm('Purge this community member record permanently from Firestore?')) return;
-    setIsActionPending(true);
-    try {
-      await deleteDoc(doc(db, 'submissions', id));
-      await onDataRefresh();
-      alert('Community member record purged successfully!');
-    } catch (err: any) {
-      console.error(err);
-      alert(`Purging record failed: ${err.message || err}`);
-      handleFirestoreError(err, OperationType.DELETE, `submissions/${id}`);
-    } finally {
-      setIsActionPending(false);
+    const performDelete = async () => {
+      setIsActionPending(true);
+      try {
+        await deleteDoc(doc(db, 'submissions', id));
+        await onDataRefresh();
+        showToast('Community member record purged successfully!');
+      } catch (err: any) {
+        console.error(err);
+        showToast(`Purging record failed: ${err.message || err}`, 'error');
+        handleFirestoreError(err, OperationType.DELETE, `submissions/${id}`);
+      } finally {
+        setIsActionPending(false);
+      }
+    };
+
+    if (skipConfirm) {
+      await performDelete();
+    } else {
+      askConfirmation(
+        'Purge Member Record',
+        'Are you absolutely sure you want to permanently delete this community member submission record? This action is irreversible.',
+        performDelete,
+        true
+      );
     }
   };
 
   // CSV and Excel Exporting Engines
   const handleExportData = (format: 'csv' | 'excel') => {
     if (submissions.length === 0) {
-      alert('No record packets to transmit.');
+      showToast('No record packets to transmit.', 'error');
       return;
     }
 
@@ -2198,8 +2321,89 @@ export default function AdminPanel({
           submission={selectedInspectSub}
           fields={fields}
           onClose={() => setSelectedInspectSub(null)}
-          onDelete={(id) => handleDeleteSubmission(id, true)}
+          onDelete={(id) => {
+            setSelectedInspectSub(null);
+            handleDeleteSubmission(id, false);
+          }}
         />
+      )}
+
+      {/* Custom Confirmation Modal */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={`w-full max-w-md bg-slate-950 border ${confirmDialog.isDestructive ? 'border-red-500/40' : 'border-cyan-500/40'} rounded-2xl p-6 relative shadow-[0_0_50px_rgba(6,182,212,0.15)]`}
+          >
+            <div className="flex items-center gap-2 pb-3 mb-4 border-b border-slate-800">
+              <ShieldAlert className={`w-5 h-5 ${confirmDialog.isDestructive ? 'text-red-500' : 'text-cyan-400'}`} />
+              <span className={`text-xs font-mono uppercase font-bold tracking-wider ${confirmDialog.isDestructive ? 'text-red-400' : 'text-cyan-300'}`}>
+                {confirmDialog.title}
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-300 font-sans leading-relaxed mb-6">
+              {confirmDialog.message}
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  const onConfirm = confirmDialog.onConfirm;
+                  setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                  await onConfirm();
+                }}
+                className={`flex-1 py-2 rounded-xl text-2xs font-mono uppercase tracking-wider cursor-pointer font-bold border transition-all ${
+                  confirmDialog.isDestructive
+                    ? 'bg-red-950/40 hover:bg-red-900 border-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] text-red-400'
+                    : 'bg-cyan-950/40 hover:bg-cyan-900 border-cyan-500/30 hover:shadow-[0_0_15px_rgba(6,182,212,0.2)] text-cyan-400'
+                }`}
+              >
+                {confirmDialog.confirmText || 'Confirm'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                className="bg-slate-900 hover:bg-slate-800 text-slate-400 text-2xs px-5 py-2 rounded-xl border border-slate-800 cursor-pointer font-mono uppercase tracking-wider"
+              >
+                {confirmDialog.cancelText || 'Cancel'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Custom Toast Alert */}
+      {toast.isOpen && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className={`flex items-center gap-3 px-5 py-3.5 rounded-xl border ${
+              toast.type === 'error'
+                ? 'bg-red-950/90 border-red-500/40 text-red-200'
+                : toast.type === 'info'
+                ? 'bg-blue-950/90 border-blue-500/40 text-blue-200'
+                : 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200'
+            } shadow-[0_0_30px_rgba(0,0,0,0.5)] backdrop-blur-md max-w-sm`}
+          >
+            {toast.type === 'error' ? (
+              <ShieldAlert className="w-5 h-5 text-red-400 shrink-0" />
+            ) : (
+              <Check className="w-5 h-5 text-emerald-400 shrink-0" />
+            )}
+            <span className="text-xs font-mono uppercase tracking-wide leading-relaxed">{toast.message}</span>
+            <button 
+              onClick={() => setToast(prev => ({ ...prev, isOpen: false }))}
+              className="text-slate-400 hover:text-white ml-2 text-2xs cursor-pointer"
+            >
+              ✕
+            </button>
+          </motion.div>
+        </div>
       )}
     </div>
   );
