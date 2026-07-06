@@ -1,0 +1,8 @@
+{
+  "name": "Remix: UFTB Cyber Community",
+  "description": "A premium, futuristic Cyber Security and Ethical Hacking community hub with announcement boards, memories log, senior contacts, customizable forms, and a secure admin control center.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

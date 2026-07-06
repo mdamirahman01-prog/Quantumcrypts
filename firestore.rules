@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Config collection
+    match /config/{configId} {
+      allow read, write: if true;
+    }
+
+    // Welcome messages
+    match /welcome_messages/{messageId} {
+      allow read, write: if true;
+    }
+
+    // Memories
+    match /memories/{memoryId} {
+      allow read, write: if true;
+    }
+
+    // Notices
+    match /notices/{noticeId} {
+      allow read, write: if true;
+    }
+
+    // Form fields
+    match /form_fields/{fieldId} {
+      allow read, write: if true;
+    }
+
+    // Submissions
+    match /submissions/{subId} {
+      allow read, write: if true;
+    }
+
+    // GST presets
+    match /gst_presets/{gstId} {
+      allow read, write: if true;
+    }
+
+    // Senior contacts
+    match /senior_contacts/{contactId} {
+      allow read, write: if true;
+    }
+
+    // Senior messages (for legacy data purge)
+    match /senior_messages/{messageId} {
+      allow read, write: if true;
+    }
+  }
+}

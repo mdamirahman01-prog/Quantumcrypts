@@ -1,0 +1,150 @@
+{
+  "entities": {
+    "WelcomeMessage": {
+      "title": "WelcomeMessage",
+      "description": "Greeting message shown dynamically on the dashboard.",
+      "type": "object",
+      "properties": {
+        "message": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["message", "enabled"]
+    },
+    "Memory": {
+      "title": "Memory",
+      "description": "A campus or department memory containing details and an uploaded image.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["title", "description", "imageUrl", "createdAt"]
+    },
+    "Notice": {
+      "title": "Notice",
+      "description": "Notice board item.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string" },
+        "attachmentUrl": { "type": "string" },
+        "pinned": { "type": "boolean" },
+        "hidden": { "type": "boolean" },
+        "archived": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["title", "description", "date", "pinned", "hidden", "archived"]
+    },
+    "FormField": {
+      "title": "FormField",
+      "description": "Custom form field definition for visitor registry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "type": { "type": "string" },
+        "required": { "type": "boolean" },
+        "placeholder": { "type": "string" },
+        "options": { "type": "array" },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "label", "type", "required", "order"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "Visitor form submission.",
+      "type": "object",
+      "properties": {
+        "visitorNickname": { "type": "string" },
+        "answers": { "type": "object" },
+        "submittedAt": { "type": "number" }
+      },
+      "required": ["visitorNickname", "answers", "submittedAt"]
+    },
+    "LogoConfig": {
+      "title": "LogoConfig",
+      "description": "Mainframe logo URL configuration.",
+      "type": "object",
+      "properties": {
+        "logoUrl": { "type": "string" }
+      },
+      "required": ["logoUrl"]
+    },
+    "VisitorsConfig": {
+      "title": "VisitorsConfig",
+      "description": "Mainframe visitor counter config.",
+      "type": "object",
+      "properties": {
+        "count": { "type": "number" }
+      },
+      "required": ["count"]
+    },
+    "GSTPreset": {
+      "title": "GSTPreset",
+      "description": "Preset answers to prefill the registration form for a specific GST roll.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "answers": { "type": "object" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "answers", "updatedAt"]
+    },
+    "SeniorContact": {
+      "title": "SeniorContact",
+      "description": "Information about a senior operative including name, email, phone, and image.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["name", "phone", "email", "photoUrl", "createdAt"]
+    }
+  },
+  "firestore": {
+    "senior_contacts/{contactId}": {
+      "schema": "SeniorContact",
+      "description": "Contacts for senior department members."
+    },
+    "gst_presets/{gstId}": {
+      "schema": "GSTPreset",
+      "description": "Preset form fields mapping for specific GST roll."
+    },
+    "welcome_messages/{messageId}": {
+      "schema": "WelcomeMessage",
+      "description": "Greeting messages."
+    },
+    "memories/{memoryId}": {
+      "schema": "Memory",
+      "description": "Campus and department memories."
+    },
+    "notices/{noticeId}": {
+      "schema": "Notice",
+      "description": "Notice board entries."
+    },
+    "form_fields/{fieldId}": {
+      "schema": "FormField",
+      "description": "Fields for dynamic form."
+    },
+    "submissions/{subId}": {
+      "schema": "Submission",
+      "description": "Form submissions."
+    },
+    "config/logo": {
+      "schema": "LogoConfig",
+      "description": "Logo settings."
+    },
+    "config/visitors": {
+      "schema": "VisitorsConfig",
+      "description": "Visitor count settings."
+    }
+  }
+}

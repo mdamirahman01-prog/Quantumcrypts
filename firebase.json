@@ -1,0 +1,8 @@
+{
+  "firestore": [
+    {
+      "database": "ai-studio-remixuftbcyberco-3f631ca6-0ac2-4c63-b0c2-c3edf44f2946",
+      "rules": "firestore.rules"
+    }
+  ]
+}
