@@ -11,7 +11,7 @@ import {
   orderBy, 
   limit 
 } from 'firebase/firestore';
-import { db, compressImage } from '../lib/firebase';
+import { db, compressImage, handleFirestoreError, OperationType } from '../lib/firebase';
 import { 
   LogoConfig, 
   WelcomeMessage, 
@@ -334,9 +334,11 @@ export default function AdminPanel({
     try {
       await deleteDoc(doc(db, 'memories', id));
       await onDataRefresh();
-    } catch (err) {
+      alert('Memory deleted successfully!');
+    } catch (err: any) {
       console.error(err);
-      alert('Memory deletion failed.');
+      alert(`Memory deletion failed: ${err.message || err}`);
+      handleFirestoreError(err, OperationType.DELETE, `memories/${id}`);
     } finally {
       setIsActionPending(false);
     }
@@ -400,9 +402,11 @@ export default function AdminPanel({
     try {
       await deleteDoc(doc(db, 'senior_contacts', id));
       await onDataRefresh();
-    } catch (err) {
+      alert('Senior contact deleted successfully!');
+    } catch (err: any) {
       console.error(err);
-      alert('Senior contact deletion failed.');
+      alert(`Senior contact deletion failed: ${err.message || err}`);
+      handleFirestoreError(err, OperationType.DELETE, `senior_contacts/${id}`);
     } finally {
       setIsActionPending(false);
     }
@@ -512,8 +516,11 @@ export default function AdminPanel({
     try {
       await deleteDoc(doc(db, 'notices', id));
       await onDataRefresh();
-    } catch (err) {
+      alert('Notice bulletin purged successfully!');
+    } catch (err: any) {
       console.error(err);
+      alert(`Notice deletion failed: ${err.message || err}`);
+      handleFirestoreError(err, OperationType.DELETE, `notices/${id}`);
     } finally {
       setIsActionPending(false);
     }
@@ -608,8 +615,11 @@ export default function AdminPanel({
     try {
       await deleteDoc(doc(db, 'form_fields', id));
       await onDataRefresh();
-    } catch (err) {
+      alert('Custom form field removed successfully!');
+    } catch (err: any) {
       console.error(err);
+      alert(`Custom field deletion failed: ${err.message || err}`);
+      handleFirestoreError(err, OperationType.DELETE, `form_fields/${id}`);
     } finally {
       setIsActionPending(false);
     }
@@ -622,8 +632,11 @@ export default function AdminPanel({
     try {
       await deleteDoc(doc(db, 'submissions', id));
       await onDataRefresh();
-    } catch (err) {
+      alert('Community member record purged successfully!');
+    } catch (err: any) {
       console.error(err);
+      alert(`Purging record failed: ${err.message || err}`);
+      handleFirestoreError(err, OperationType.DELETE, `submissions/${id}`);
     } finally {
       setIsActionPending(false);
     }
