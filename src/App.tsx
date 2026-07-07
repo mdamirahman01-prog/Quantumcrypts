@@ -471,7 +471,7 @@ export default function App() {
             <span>All Information Encrypted & Secure</span>
           </div>
           <p className="text-[10px] font-mono text-slate-500 tracking-wide select-none flex items-center justify-center gap-1.5">
-            <span>Maintenance, Service Engineering Department</span>
+            <span>Run & Maintained by Cyber Security Engineering Department 2nd Batch Students</span>
             <button
               onClick={() => setIsAdminAuthOpen(true)}
               className="opacity-10 hover:opacity-100 focus:opacity-100 transition-opacity duration-300 p-0.5 text-slate-400 hover:text-cyan-400 cursor-pointer"
@@ -720,7 +720,7 @@ export default function App() {
           </div>
           
           <p className="text-[11px] font-mono text-slate-400 tracking-wide flex items-center justify-center gap-1.5">
-            <span>Maintenance, Service Engineering Department</span>
+            <span>Run & Maintained by Cyber Security Engineering Department 2nd Batch Students</span>
             {isAdminAuthenticated && (
               <button
                 onClick={() => {
