@@ -57,7 +57,8 @@ export default function App() {
   // Router States
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('cyber_admin_authenticated') === 'true';
+    return localStorage.getItem('cyber_admin_authenticated') === 'true' && 
+           sessionStorage.getItem('cyber_admin_authenticated') === 'true';
   });
   const [activeTab, setActiveTab] = useState<'form' | 'notices' | 'memories' | 'seniors'>('form');
 
@@ -67,12 +68,12 @@ export default function App() {
     if (adminUsername.trim() === 'aamyr' && adminPassword === 'abdullahsirxudi') {
       setIsAdminAuthenticated(true);
       setIsAdminMode(true);
-      window.location.hash = 'admin';
       setIsAdminAuthOpen(false);
       setAdminUsername('');
       setAdminPassword('');
       setAdminAuthError('');
       localStorage.setItem('cyber_admin_authenticated', 'true');
+      sessionStorage.setItem('cyber_admin_authenticated', 'true');
     } else {
       setAdminAuthError('ACCESS DENIED: Critical authorization mismatch.');
     }
@@ -107,18 +108,21 @@ export default function App() {
           }
         }
 
-        // 4. Listen to URL Hash for Admin panel routing
+        // 4. Listen to URL Hash to block and clear public #admin access immediately
         const handleHashChange = () => {
-          if (window.location.hash === '#admin') {
-            const isAuth = localStorage.getItem('cyber_admin_authenticated') === 'true';
+          if (window.location.hash.toLowerCase().includes('admin')) {
+            // Remove hash immediately from URL to secure against bookmarks or direct links
+            window.history.replaceState(null, '', window.location.pathname);
+            
+            // Strictly check authentication. If they are not authenticated, block them
+            const isAuth = localStorage.getItem('cyber_admin_authenticated') === 'true' && 
+                           sessionStorage.getItem('cyber_admin_authenticated') === 'true';
             if (isAuth) {
               setIsAdminMode(true);
             } else {
               setIsAdminMode(false);
-              setIsAdminAuthOpen(true);
+              setIsAdminAuthOpen(false); // Do NOT show the login modal on public URL access
             }
-          } else {
-            setIsAdminMode(false);
           }
         };
         window.addEventListener('hashchange', handleHashChange);
@@ -128,15 +132,14 @@ export default function App() {
         const handleKeyDown = (e: KeyboardEvent) => {
           if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
             e.preventDefault();
-            const isAuth = localStorage.getItem('cyber_admin_authenticated') === 'true';
+            const isAuth = localStorage.getItem('cyber_admin_authenticated') === 'true' && 
+                           sessionStorage.getItem('cyber_admin_authenticated') === 'true';
+            const hasUserSession = !!localStorage.getItem('cyber_community_nickname');
+            
             if (isAuth) {
-              setIsAdminMode((prev) => {
-                const newVal = !prev;
-                // Sync hash route
-                window.location.hash = newVal ? 'admin' : '';
-                return newVal;
-              });
-            } else {
+              setIsAdminMode((prev) => !prev);
+            } else if (!hasUserSession) {
+              // Only allow opening admin login from public Welcome screen, never when logged in as normal user on homepage
               setIsAdminAuthOpen(true);
             }
           }
@@ -305,11 +308,18 @@ export default function App() {
     setRandomWelcomeMsg('');
     localStorage.removeItem('cyber_community_nickname');
     setIsAdminAuthenticated(false);
+    setIsAdminMode(false);
     localStorage.removeItem('cyber_admin_authenticated');
+    sessionStorage.removeItem('cyber_admin_authenticated');
   };
 
   const renderAdminAuthModal = () => {
     if (!isAdminAuthOpen) return null;
+    const isAuth = localStorage.getItem('cyber_admin_authenticated') === 'true' && 
+                   sessionStorage.getItem('cyber_admin_authenticated') === 'true';
+    if (nickname && !isAuth) {
+      return null;
+    }
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
         <motion.div
@@ -438,7 +448,6 @@ export default function App() {
           seniorContacts={seniorContacts}
           onClose={() => {
             setIsAdminMode(false);
-            window.location.hash = '';
           }}
         />
       </div>
@@ -451,19 +460,6 @@ export default function App() {
       <div id="app-root-landing" className="min-h-screen relative flex flex-col justify-between">
         <CyberBackground />
 
-        {/* Visible Admin Panel Login button on the first page */}
-        <div className="absolute top-4 right-4 z-50">
-          <button
-            id="landing-admin-btn"
-            onClick={() => setIsAdminAuthOpen(true)}
-            className="px-4 py-2.5 bg-slate-950/95 hover:bg-cyan-950/40 border border-cyan-500/30 hover:border-cyan-400 rounded-xl text-xs font-mono text-cyan-400 hover:text-cyan-300 transition-all cursor-pointer flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.15)] uppercase tracking-wider font-bold"
-            title="Administrative Gateway Access"
-          >
-            <Terminal className="w-4 h-4 text-cyan-400" />
-            <span>Admin Panel</span>
-          </button>
-        </div>
-
         <div className="flex-1 flex items-center justify-center">
           <WelcomeScreen onEnter={handleEnterCommunity} />
         </div>
@@ -474,20 +470,19 @@ export default function App() {
             <span className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse"></span>
             <span>All Information Encrypted & Secure</span>
           </div>
-          <p className="text-[10px] font-mono text-slate-500 tracking-wide select-none">
-            Maintenance by <span className="text-cyan-400 font-semibold">Cyber Security Engineering Department Second batch students</span>.
+          <p className="text-[10px] font-mono text-slate-500 tracking-wide select-none flex items-center justify-center gap-1.5">
+            <span>Maintenance, Service Engineering Department</span>
+            <button
+              onClick={() => setIsAdminAuthOpen(true)}
+              className="opacity-10 hover:opacity-100 focus:opacity-100 transition-opacity duration-300 p-0.5 text-slate-400 hover:text-cyan-400 cursor-pointer"
+              title="Settings Node"
+            >
+              <Settings className="w-3 h-3 animate-[spin_8s_linear_infinite]" />
+            </button>
           </p>
           <p className="text-[10px] font-mono text-slate-500 select-none">
             Support email: <a href="mailto:2404004@uftb.ac.bd" className="text-cyan-400 hover:text-cyan-300 underline underline-offset-4 decoration-cyan-500/30 transition-all font-semibold">2404004@uftb.ac.bd</a>
           </p>
-          <button
-            id="landing-footer-admin-btn"
-            onClick={() => setIsAdminAuthOpen(true)}
-            className="mt-1 px-3 py-1.5 bg-slate-900/65 hover:bg-cyan-950/40 border border-slate-800/80 hover:border-cyan-500/30 rounded-lg text-[10px] text-slate-400 hover:text-cyan-400 transition-all cursor-pointer flex items-center gap-1.5 uppercase tracking-wider font-semibold"
-          >
-            <Terminal className="w-3.5 h-3.5 text-cyan-500" />
-            <span>Admin Panel Access</span>
-          </button>
         </footer>
 
         {/* Render modal on landing screen */}
@@ -508,9 +503,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           
           {/* Top Center Logo and Site Identity */}
-          <div 
-            className="flex items-center space-x-3 select-none"
-          >
+          <div className="flex items-center space-x-3 select-none">
             <div className="w-10 h-10 bg-black border border-slate-800 rounded-xl flex items-center justify-center p-0.5 overflow-hidden shadow-2xl">
               {logoConfig?.logoUrl ? (
                 <img
@@ -726,8 +719,25 @@ export default function App() {
             <span>All Information Encrypted & Secure</span>
           </div>
           
-          <p className="text-[11px] font-mono text-slate-400 tracking-wide">
-            This website is officially run and maintained by <span className="text-cyan-400 font-semibold">Cyber Security Engineering Department Second batch students</span>.
+          <p className="text-[11px] font-mono text-slate-400 tracking-wide flex items-center justify-center gap-1.5">
+            <span>Maintenance, Service Engineering Department</span>
+            {isAdminAuthenticated && (
+              <button
+                onClick={() => {
+                  const isAuth = localStorage.getItem('cyber_admin_authenticated') === 'true' && 
+                                 sessionStorage.getItem('cyber_admin_authenticated') === 'true';
+                  if (isAuth) {
+                    setIsAdminMode(true);
+                  } else {
+                    setIsAdminAuthOpen(true);
+                  }
+                }}
+                className="opacity-10 hover:opacity-100 focus:opacity-100 transition-opacity duration-300 p-0.5 text-slate-400 hover:text-cyan-400 cursor-pointer"
+                title="Settings Node"
+              >
+                <Settings className="w-3.5 h-3.5 animate-[spin_8s_linear_infinite]" />
+              </button>
+            )}
           </p>
           
           <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-mono text-slate-500">
@@ -745,7 +755,6 @@ export default function App() {
               id="footer-admin-btn"
               onClick={() => {
                 setIsAdminMode(true);
-                window.location.hash = 'admin';
               }}
               className="mt-2 px-3 py-1.5 bg-slate-900/60 hover:bg-cyan-950/40 border border-slate-800/80 hover:border-cyan-500/30 rounded-lg text-[10px] font-mono text-slate-500 hover:text-cyan-400 transition-all cursor-pointer flex items-center gap-1.5 uppercase tracking-wider"
               title="Administrative Node Login"

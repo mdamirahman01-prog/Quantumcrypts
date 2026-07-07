@@ -174,7 +174,6 @@ Generated Securely via UFTB Cyber Mainframe.
           <div className="py-16 text-center">
             <AlertCircle className="w-10 h-10 text-slate-500 mx-auto mb-3 animate-bounce" />
             <p className="text-xs font-mono text-slate-400">No senior contact channels found.</p>
-            <p className="text-[10px] font-mono text-slate-500 mt-1">Seniors can be managed securely from the Admin Console.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

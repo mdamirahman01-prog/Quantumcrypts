@@ -86,7 +86,10 @@ export default function AdminPanel({
   seniorContacts
 }: AdminPanelProps) {
   // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('cyber_admin_authenticated') === 'true' &&
+           sessionStorage.getItem('cyber_admin_authenticated') === 'true';
+  });
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -199,19 +202,24 @@ export default function AdminPanel({
   const DEFAULT_USERNAME = 'aamyr';
   const DEFAULT_PASSWORD = 'abdullahsirxudi';
 
-  // Check local session
+  // Verify and enforce local session
   useEffect(() => {
-    const sesh = localStorage.getItem('cyber_admin_authenticated');
-    if (sesh === 'true') {
+    const isAuth = localStorage.getItem('cyber_admin_authenticated') === 'true' &&
+                   sessionStorage.getItem('cyber_admin_authenticated') === 'true';
+    if (!isAuth) {
+      setIsAuthenticated(false);
+      onClose(); // Force redirect back to home page if session is missing
+    } else {
       setIsAuthenticated(true);
     }
-  }, []);
+  }, [onClose]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
       setIsAuthenticated(true);
       localStorage.setItem('cyber_admin_authenticated', 'true');
+      sessionStorage.setItem('cyber_admin_authenticated', 'true');
       setLoginError('');
     } else {
       setLoginError('ACCESS DENIED: Credentials mismatch or unauthorized token.');
@@ -221,6 +229,8 @@ export default function AdminPanel({
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('cyber_admin_authenticated');
+    sessionStorage.removeItem('cyber_admin_authenticated');
+    onClose(); // Close the Admin panel view on logout
   };
 
   // --- CRUD LOGIC ---
