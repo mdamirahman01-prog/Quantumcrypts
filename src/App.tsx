@@ -65,7 +65,14 @@ export default function App() {
   // Admin Auth submission handler
   const handleAdminAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminUsername.trim() === 'aamyr' && adminPassword === 'abdullahsirxudi') {
+    const usernameTrimmed = adminUsername.trim();
+    const isMainAdmin = usernameTrimmed === 'aamyr' && adminPassword === 'abdullahsirxudi';
+    const isAbdullah = usernameTrimmed.toLowerCase() === 'abdullah@qc.com' && 
+                       (adminPassword === ' AbdullahCySE@2425 ' || adminPassword.trim() === 'AbdullahCySE@2425');
+    const isNayeem = usernameTrimmed.toLowerCase() === 'nayeem@qc.com' && 
+                     (adminPassword === ' NayeemCySE@2425 ' || adminPassword.trim() === 'NayeemCySE@2425');
+
+    if (isMainAdmin || isAbdullah || isNayeem) {
       setIsAdminAuthenticated(true);
       setIsAdminMode(true);
       setIsAdminAuthOpen(false);
