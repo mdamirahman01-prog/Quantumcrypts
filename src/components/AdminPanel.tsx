@@ -21,7 +21,8 @@ import {
   FormField, 
   Submission, 
   FieldType,
-  SeniorContact
+  SeniorContact,
+  DistrictSenior
 } from '../types';
 import SubmissionDetailModal from './SubmissionDetailModal';
 import { 
@@ -52,9 +53,22 @@ import {
   RefreshCw, 
   X,
   Database,
-  Users
+  Users,
+  MapPin,
+  GraduationCap
 } from 'lucide-react';
 import { motion } from 'motion/react';
+
+const BANGLADESH_DISTRICTS = [
+  'Bagerhat', 'Bandarban', 'Barguna', 'Barishal', 'Bhola', 'Bogura', 'Brahmanbaria', 'Chandpur',
+  'Chattogram', 'Chuadanga', 'Cumilla', "Cox's Bazar", 'Dhaka', 'Dinajpur', 'Faridpur', 'Feni',
+  'Gaibandha', 'Gazipur', 'Gopalganj', 'Habiganj', 'Jamalpur', 'Jashore', 'Jhalokati', 'Jhenaidah',
+  'Joypurhat', 'Khagrachari', 'Khulna', 'Kurigram', 'Kushtia', 'Lakshmipur', 'Lalmonirhat',
+  'Madaripur', 'Magura', 'Manikganj', 'Meherpur', 'Moulvibazar', 'Munshiganj', 'Mymensingh',
+  'Naogaon', 'Narail', 'Narayanganj', 'Narsingdi', 'Natore', 'Netrokona', 'Nilphamari', 'Noakhali',
+  'Pabna', 'Panchagarh', 'Patuakhali', 'Pirojpur', 'Rajbari', 'Rajshahi', 'Rangamati', 'Rangpur',
+  'Satkhira', 'Shariatpur', 'Sherpur', 'Sirajganj', 'Sunamganj', 'Sylhet', 'Tangail', 'Thakurgaon'
+].sort();
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -69,6 +83,7 @@ interface AdminPanelProps {
   submissions: Submission[];
   totalVisitorsCount: number;
   seniorContacts: SeniorContact[];
+  districtSeniors: DistrictSenior[];
 }
 
 export default function AdminPanel({
@@ -83,7 +98,8 @@ export default function AdminPanel({
   fields,
   submissions,
   totalVisitorsCount,
-  seniorContacts
+  seniorContacts,
+  districtSeniors
 }: AdminPanelProps) {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -95,7 +111,7 @@ export default function AdminPanel({
   const [loginError, setLoginError] = useState('');
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'logo_welcome' | 'memories' | 'notices' | 'builder' | 'submissions' | 'gst_presets' | 'senior_contacts'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'logo_welcome' | 'memories' | 'notices' | 'builder' | 'submissions' | 'gst_presets' | 'senior_contacts' | 'district_connect'>('dashboard');
 
   // Loading indicator for saves
   const [isActionPending, setIsActionPending] = useState(false);
@@ -156,6 +172,11 @@ export default function AdminPanel({
   // --- Senior Contacts ---
   const [seniorContactForm, setSeniorContactForm] = useState({ name: '', phone: '', email: '', photoUrl: '' });
   const [editingSeniorContactId, setEditingSeniorContactId] = useState<string | null>(null);
+
+  // --- District Connect ---
+  const [districtSeniorForm, setDistrictSeniorForm] = useState({ name: '', studentId: '', district: '', imageUrl: '' });
+  const [editingDistrictSeniorId, setEditingDistrictSeniorId] = useState<string | null>(null);
+  const [districtSeniorSearch, setDistrictSeniorSearch] = useState('');
 
   // --- Logo Config ---
   const [tempLogoUrl, setTempLogoUrl] = useState('');
@@ -498,6 +519,84 @@ export default function AdminPanel({
           console.error(err);
           showToast(`Senior contact deletion failed: ${err.message || err}`, 'error');
           handleFirestoreError(err, OperationType.DELETE, `senior_contacts/${id}`);
+        } finally {
+          setIsActionPending(false);
+        }
+      },
+      true
+    );
+  };
+
+  // 3a-2. District Connect Management
+  const handleDistrictSeniorPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsActionPending(true);
+    try {
+      const base64Str = await compressImage(file, 400, 400, 0.7);
+      setDistrictSeniorForm((prev) => ({ ...prev, imageUrl: base64Str }));
+      showToast('Profile image processed successfully!');
+    } catch (err) {
+      console.error('Error uploading senior image:', err);
+      showToast('Failed to compress/upload profile image.', 'error');
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
+  const handleDistrictSeniorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!districtSeniorForm.name.trim() || !districtSeniorForm.studentId.trim() || !districtSeniorForm.district.trim() || !districtSeniorForm.imageUrl) {
+      showToast('Please provide a name, student ID, district, and upload a profile picture.', 'error');
+      return;
+    }
+    setIsActionPending(true);
+    try {
+      if (editingDistrictSeniorId) {
+        await updateDoc(doc(db, 'district_seniors', editingDistrictSeniorId), {
+          name: districtSeniorForm.name.trim(),
+          studentId: districtSeniorForm.studentId.trim(),
+          district: districtSeniorForm.district.trim(),
+          imageUrl: districtSeniorForm.imageUrl,
+          updatedAt: Date.now(),
+        });
+        showToast('District senior updated successfully!');
+      } else {
+        await addDoc(collection(db, 'district_seniors'), {
+          name: districtSeniorForm.name.trim(),
+          studentId: districtSeniorForm.studentId.trim(),
+          district: districtSeniorForm.district.trim(),
+          imageUrl: districtSeniorForm.imageUrl,
+          createdAt: Date.now(),
+        });
+        showToast('District senior added successfully!');
+      }
+      setDistrictSeniorForm({ name: '', studentId: '', district: '', imageUrl: '' });
+      setEditingDistrictSeniorId(null);
+      await onDataRefresh();
+    } catch (err) {
+      console.error(err);
+      showToast('District senior save failed.', 'error');
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
+  const handleDeleteDistrictSenior = (id: string) => {
+    askConfirmation(
+      'Purge District Senior',
+      'Are you sure you want to delete this district senior operative record?',
+      async () => {
+        setIsActionPending(true);
+        try {
+          await deleteDoc(doc(db, 'district_seniors', id));
+          await onDataRefresh();
+          showToast('District senior deleted successfully!');
+        } catch (err: any) {
+          console.error(err);
+          showToast(`District senior deletion failed: ${err.message || err}`, 'error');
+          handleFirestoreError(err, OperationType.DELETE, `district_seniors/${id}`);
         } finally {
           setIsActionPending(false);
         }
@@ -1054,6 +1153,17 @@ export default function AdminPanel({
           >
             <Users className="w-4 h-4" />
             <span>Senior Contacts</span>
+          </button>
+
+          <button
+            id="tab-district-connect-btn"
+            onClick={() => setActiveTab('district_connect')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer ${
+              activeTab === 'district_connect' ? 'bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.05)]' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
+            }`}
+          >
+            <MapPin className="w-4 h-4" />
+            <span>District Connect</span>
           </button>
 
           <button
@@ -1863,6 +1973,227 @@ export default function AdminPanel({
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'district_connect' && (
+            <div id="district-connect-moderation" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Creator/Editor Form */}
+                <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 backdrop-blur-md h-fit">
+                  <h3 className="text-sm font-mono uppercase text-cyan-300 border-b border-slate-800 pb-2 mb-4">
+                    {editingDistrictSeniorId ? 'Edit District Senior Operative' : 'Enlist New District Senior'}
+                  </h3>
+
+                  <form onSubmit={handleDistrictSeniorSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-cyan-400/70 mb-1">Full Name</label>
+                      <input
+                        type="text"
+                        value={districtSeniorForm.name}
+                        onChange={(e) => setDistrictSeniorForm({ ...districtSeniorForm, name: e.target.value })}
+                        placeholder="e.g., Abdullah Al Nayeem"
+                        className="w-full bg-slate-950/60 border border-slate-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-cyan-400/70 mb-1">Student ID</label>
+                      <input
+                        type="text"
+                        value={districtSeniorForm.studentId}
+                        onChange={(e) => setDistrictSeniorForm({ ...districtSeniorForm, studentId: e.target.value })}
+                        placeholder="e.g., CySE-222301"
+                        className="w-full bg-slate-950/60 border border-slate-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 font-mono"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-cyan-400/70 mb-1">Home District</label>
+                      <select
+                        value={districtSeniorForm.district}
+                        onChange={(e) => setDistrictSeniorForm({ ...districtSeniorForm, district: e.target.value })}
+                        className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 font-mono cursor-pointer"
+                        required
+                      >
+                        <option value="" disabled className="text-slate-600 bg-slate-950">-- Select Home District --</option>
+                        {BANGLADESH_DISTRICTS.map((d) => (
+                          <option key={d} value={d} className="bg-slate-950 text-white font-mono text-xs">{d}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-cyan-400/70 mb-1">Profile Photo</label>
+                      <div className="flex items-center space-x-3 mt-1.5">
+                        <div className="w-12 h-12 rounded-full border border-slate-800 bg-slate-950 flex items-center justify-center p-0.5 overflow-hidden shrink-0">
+                          {districtSeniorForm.imageUrl ? (
+                            <img
+                              src={districtSeniorForm.imageUrl}
+                              alt="District senior preview"
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover rounded-full"
+                            />
+                          ) : (
+                            <Users className="w-6 h-6 text-slate-800" />
+                          )}
+                        </div>
+
+                        <div className="flex-1">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleDistrictSeniorPhotoUpload}
+                            id="district-senior-photo-upload"
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor="district-senior-photo-upload"
+                            className="inline-block px-3 py-1.5 bg-slate-850 hover:bg-slate-800 text-slate-300 font-mono text-2xs uppercase tracking-wider rounded-lg border border-slate-800 transition-colors cursor-pointer select-none"
+                          >
+                            Upload File
+                          </label>
+                          <p className="text-[8px] font-mono text-slate-500 mt-1">Lightweight smart crop & compress</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center space-x-2">
+                      <button
+                        type="submit"
+                        disabled={isActionPending}
+                        className="flex-1 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-black font-mono text-2xs uppercase font-bold tracking-widest py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 font-bold"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>{editingDistrictSeniorId ? 'Save Changes' : 'Publish Senior'}</span>
+                      </button>
+                      
+                      {editingDistrictSeniorId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingDistrictSeniorId(null);
+                            setDistrictSeniorForm({ name: '', studentId: '', district: '', imageUrl: '' });
+                          }}
+                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-2xs font-mono uppercase cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+
+                {/* List & Search View */}
+                <div className="lg:col-span-2 space-y-4">
+                  <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 backdrop-blur-md">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-3 mb-4">
+                      <div>
+                        <h3 className="text-sm font-mono uppercase text-cyan-300">
+                          Archived District Senior Records
+                        </h3>
+                        <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-0.5">
+                          Total database entries: {districtSeniors.length}
+                        </p>
+                      </div>
+
+                      {/* Search Bar */}
+                      <div className="relative w-full sm:w-60">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600" />
+                        <input
+                          type="text"
+                          value={districtSeniorSearch}
+                          onChange={(e) => setDistrictSeniorSearch(e.target.value)}
+                          placeholder="Search entries..."
+                          className="w-full bg-slate-950/60 border border-slate-800 focus:border-cyan-500/40 rounded-xl py-1.5 pl-8 pr-3 text-2xs text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/10 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Table / Grid list */}
+                    {districtSeniors.length === 0 ? (
+                      <div className="py-16 text-center">
+                        <Users className="w-10 h-10 text-slate-700 mx-auto mb-3 animate-pulse" />
+                        <p className="text-xs font-mono text-slate-500 uppercase">No records registered in the mainframe database.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-cyan-500/10">
+                        {districtSeniors
+                          .filter((s) => {
+                            const queryStr = districtSeniorSearch.toLowerCase();
+                            return (
+                              s.name.toLowerCase().includes(queryStr) ||
+                              s.studentId.toLowerCase().includes(queryStr) ||
+                              s.district.toLowerCase().includes(queryStr)
+                            );
+                          })
+                          .sort((a, b) => b.createdAt - a.createdAt)
+                          .map((s) => (
+                            <div
+                              key={s.id}
+                              className="bg-slate-950/40 border border-slate-850 rounded-xl p-4 flex items-center space-x-3.5 relative group hover:border-cyan-500/20 transition-all duration-300"
+                            >
+                              <div className="w-11 h-11 rounded-full border border-slate-800 bg-slate-900 p-0.5 overflow-hidden shrink-0 flex items-center justify-center">
+                                {s.imageUrl ? (
+                                  <img
+                                    src={s.imageUrl}
+                                    alt={s.name}
+                                    referrerPolicy="no-referrer"
+                                    className="w-full h-full object-cover rounded-full"
+                                  />
+                                ) : (
+                                  <Users className="w-5 h-5 text-slate-700" />
+                                )}
+                              </div>
+
+                              <div className="flex-1 min-w-0 pr-12">
+                                <h4 className="text-xs font-sans font-black text-white truncate">{s.name}</h4>
+                                <p className="text-[10px] font-mono text-cyan-400 mt-0.5 truncate flex items-center gap-1">
+                                  <GraduationCap className="w-3 h-3" />
+                                  <span>ID: {s.studentId}</span>
+                                </p>
+                                <p className="text-[10px] font-mono text-slate-400 mt-0.5 truncate flex items-center gap-1">
+                                  <MapPin className="w-3 h-3 text-cyan-500/60" />
+                                  <span>District: <strong>{s.district}</strong></span>
+                                </p>
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="absolute top-3 right-3 flex items-center space-x-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingDistrictSeniorId(s.id);
+                                    setDistrictSeniorForm({
+                                      name: s.name,
+                                      studentId: s.studentId,
+                                      district: s.district,
+                                      imageUrl: s.imageUrl,
+                                    });
+                                  }}
+                                  className="p-1 bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-cyan-300 rounded cursor-pointer transition-colors"
+                                  title="Edit entry"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteDistrictSenior(s.id)}
+                                  className="p-1 bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-red-400 rounded cursor-pointer transition-colors"
+                                  title="Delete entry"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

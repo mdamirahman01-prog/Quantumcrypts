@@ -88,3 +88,14 @@ export interface SeniorContact {
   photoUrl: string; // base64 or URL
   createdAt: number;
 }
+
+export interface DistrictSenior {
+  id: string;
+  name: string;
+  studentId: string;
+  district: string;
+  imageUrl: string; // base64 or storage URL
+  createdAt: number;
+  updatedAt?: number;
+}
+

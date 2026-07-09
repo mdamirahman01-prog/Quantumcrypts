@@ -46,6 +46,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // District seniors
+    match /district_seniors/{seniorId} {
+      allow read, write: if true;
+    }
+
     // Senior messages (for legacy data purge)
     match /senior_messages/{messageId} {
       allow read, write: if true;

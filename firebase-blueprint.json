@@ -107,9 +107,27 @@
         "createdAt": { "type": "number" }
       },
       "required": ["name", "phone", "email", "photoUrl", "createdAt"]
+    },
+    "DistrictSenior": {
+      "title": "DistrictSenior",
+      "description": "Information about senior student grouped by home district.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "studentId": { "type": "string" },
+        "district": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["name", "studentId", "district", "imageUrl", "createdAt"]
     }
   },
   "firestore": {
+    "district_seniors/{seniorId}": {
+      "schema": "DistrictSenior",
+      "description": "Seniors grouped by home district."
+    },
     "senior_contacts/{contactId}": {
       "schema": "SeniorContact",
       "description": "Contacts for senior department members."

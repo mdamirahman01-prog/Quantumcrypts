@@ -18,7 +18,8 @@ import {
   Notice, 
   FormField, 
   Submission,
-  SeniorContact
+  SeniorContact,
+  DistrictSenior
 } from './types';
 import WelcomeScreen from './components/WelcomeScreen';
 import CyberBackground from './components/CyberBackground';
@@ -26,9 +27,10 @@ import OurMemories from './components/OurMemories';
 import NoticeBoard from './components/NoticeBoard';
 import DynamicForm from './components/DynamicForm';
 import SeniorContacts from './components/SeniorContacts';
+import DistrictConnect from './components/DistrictConnect';
 import AdminPanel from './components/AdminPanel';
 import QuantumCryptsLogo from './components/QuantumCryptsLogo';
-import { ShieldCheck, LogOut, Terminal, Cpu, Database, RefreshCw, Layers, Bell, FileText, Image, Settings, Users } from 'lucide-react';
+import { ShieldCheck, LogOut, Terminal, Cpu, Database, RefreshCw, Layers, Bell, FileText, Image, Settings, Users, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function App() {
@@ -46,6 +48,7 @@ export default function App() {
   const [fields, setFields] = useState<FormField[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [seniorContacts, setSeniorContacts] = useState<SeniorContact[]>([]);
+  const [districtSeniors, setDistrictSeniors] = useState<DistrictSenior[]>([]);
   const [totalVisitors, setTotalVisitors] = useState<number>(0);
 
   // Settings & Visibility Toggle States
@@ -60,7 +63,7 @@ export default function App() {
     return localStorage.getItem('cyber_admin_authenticated') === 'true' && 
            sessionStorage.getItem('cyber_admin_authenticated') === 'true';
   });
-  const [activeTab, setActiveTab] = useState<'form' | 'notices' | 'memories' | 'seniors'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'notices' | 'memories' | 'seniors' | 'district'>('form');
 
   // Admin Auth submission handler
   const handleAdminAuthSubmit = (e: React.FormEvent) => {
@@ -185,7 +188,8 @@ export default function App() {
         fieldSnap,
         subSnap,
         visitorSnap,
-        seniorSnap
+        seniorSnap,
+        districtSeniorSnap
       ] = await Promise.all([
         getDoc(doc(db, 'config', 'logo')),
         getDocs(collection(db, 'welcome_messages')),
@@ -195,7 +199,8 @@ export default function App() {
         getDocs(collection(db, 'form_fields')),
         getDocs(collection(db, 'submissions')),
         getDoc(doc(db, 'config', 'visitors')),
-        getDocs(collection(db, 'senior_contacts'))
+        getDocs(collection(db, 'senior_contacts')),
+        getDocs(collection(db, 'district_seniors'))
       ]);
 
       // Logo url
@@ -253,6 +258,13 @@ export default function App() {
         seniorList.push({ id: d.id, ...d.data() } as SeniorContact);
       });
       setSeniorContacts(seniorList);
+
+      // District Seniors
+      const districtSeniorList: DistrictSenior[] = [];
+      districtSeniorSnap.forEach((d) => {
+        districtSeniorList.push({ id: d.id, ...d.data() } as DistrictSenior);
+      });
+      setDistrictSeniors(districtSeniorList);
 
       // Visitor Count
       if (visitorSnap.exists()) {
@@ -453,6 +465,7 @@ export default function App() {
           submissions={submissions}
           totalVisitorsCount={totalVisitors}
           seniorContacts={seniorContacts}
+          districtSeniors={districtSeniors}
           onClose={() => {
             setIsAdminMode(false);
           }}
@@ -650,11 +663,24 @@ export default function App() {
               <Users className="w-3.5 h-3.5" />
               <span>Contact with Senior</span>
             </button>
+
+            <button
+              id="tab-btn-district"
+              onClick={() => setActiveTab('district')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-mono tracking-wider uppercase transition-all cursor-pointer flex-1 sm:flex-initial justify-center ${
+                activeTab === 'district'
+                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)] font-bold'
+                  : 'text-slate-400 hover:text-slate-200 border border-transparent hover:bg-slate-800/40'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>District Connect</span>
+            </button>
           </div>
 
           <div className="hidden md:flex items-center gap-2 px-3 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
             <Layers className="w-3.5 h-3.5 animate-pulse text-cyan-500/50" />
-            <span>Feed Link: {activeTab === 'form' ? 'Dynamic Submission' : activeTab === 'notices' ? 'Notice Board' : activeTab === 'memories' ? 'Memory Log' : 'Senior Roster'}</span>
+            <span>Feed Link: {activeTab === 'form' ? 'Dynamic Submission' : activeTab === 'notices' ? 'Notice Board' : activeTab === 'memories' ? 'Memory Log' : activeTab === 'seniors' ? 'Senior Roster' : 'District Connect'}</span>
           </div>
         </div>
 
@@ -709,6 +735,19 @@ export default function App() {
               className="max-w-4xl mx-auto w-full"
             >
               <SeniorContacts contacts={seniorContacts} />
+            </motion.div>
+          )}
+
+          {activeTab === 'district' && (
+            <motion.div
+              id="district-tab-content"
+              key="district-tab"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-4xl mx-auto w-full"
+            >
+              <DistrictConnect seniors={districtSeniors} />
             </motion.div>
           )}
         </div>
