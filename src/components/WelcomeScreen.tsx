@@ -37,7 +37,7 @@ export default function WelcomeScreen({ onEnter }: WelcomeScreenProps) {
       setError('Identifier must be 20 characters or less.');
       return;
     }
-    if (password !== 'cyber2026') {
+    if (password !== 'cyber26') {
       setError('Access Denied: Invalid community authorization code.');
       return;
     }
